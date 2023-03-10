@@ -1,0 +1,24 @@
+0.011
+25.0
+-0.004215667
+0.31
+0.167
+0.000692425
+50
+0
+0
+400
+1
+
+
+s:surface tension
+R0: initial bubble radius
+P_inf: boundary pressure 0.002898332/-0.004215667
+rho_l: liquid density
+nu_l: liquid kinematic viscosity
+P_v: bubble pressure/gas pressure
+r_inf: boundary distance
+z: start value for r'
+time_start
+time_end
+step_size
