@@ -7,6 +7,7 @@ char setupfile[]="setupfile.txt";
 int n,mx,my; //number of latttice nodes
 int cas;//different cases
 int bc;//1:periodic boundary condition 2:zou-he boundary condition
+int fcas;//different force scheme: 1.vsm 2. EDM 3. Guo's force scheme.
 int eos;//different equation of state :: eos=1 and default standard eos. eos=2 C-S equation of state. 
 double R;//constant in the c-s eos
 double A;//constant in the c-s eos
@@ -38,7 +39,7 @@ std::string to_string_with_precision(const double a_value, const int n = 2)
     return out.str();
 }
 void Readinitialfile(char* filename,int *n,int *mx,int *my,double *omega,int *mstep
-,int* cas,int *bc,int* eos,double* R,double* A,double* B,double* T,double *lx,double* ly,int*c,
+,int* cas,int* fcas,int *bc,int* eos,double* R,double* A,double* B,double* T,double *lx,double* ly,int*c,
 double* rho_l,double* rho_g,double* radius,int* freq,double* rho0,double* g,double* if_th)
 { 
     FILE *file=NULL;
@@ -53,6 +54,7 @@ double* rho_l,double* rho_g,double* radius,int* freq,double* rho0,double* g,doub
     fscanf(file,"%lf",omega);
     fscanf(file,"%d",mstep);
     fscanf(file,"%d",cas);
+    fscanf(file,"%d",fcas);
     fscanf(file,"%d",bc);
     fscanf(file,"%d",eos);
     fscanf(file,"%lf",R);
@@ -192,7 +194,14 @@ void ComputeSCForce(int *cx,int *cy,double **rho,double *w,double **Fx,double **
         }
     }
 }
-void ComputeVelocity(double ***f,double** ux,double **uy,int* cx,int* cy,double **rho)
+void ComputeGuoForce(int i,int j,int k,int *cx,int *cy,double **ux,double ** uy,double** Fx,double** Fy,double*w,double* forcing)
+{
+        double temp=cx[k] * ux[i][j] + cy[k] * uy[i][j];
+        forcing[k] = w[k] * (1. - 0.5 * omega) * 
+        ((3. * (cx[k] - ux[i][j]) + 9. * cx[k] * temp) * Fx[i][j] + 
+        (3. * (cy[k] - uy[i][j]) + 9. * cy[k] * temp) * Fy[i][j]);
+}
+void ComputeVelocity(double ***f,double** ux,double **uy,int* cx,int* cy,double **rho,double** Fx,double** Fy)
 {   
     for(int i=0;i<mx;i++)
     {
@@ -204,6 +213,11 @@ void ComputeVelocity(double ***f,double** ux,double **uy,int* cx,int* cy,double 
             {
                 ux[i][j] += f[k][i][j]*cx[k];
                 uy[i][j] += f[k][i][j]*cy[k];
+                if(fcas==3)
+                {
+                    ux[i][j] += (0.5 * Fx[i][j]);
+                    uy[i][j] += (0.5 * Fy[i][j]);
+                }
             }
             double dens = ComputeTotalDensity(i,j,rho);
             ux[i][j] /= dens;
@@ -216,8 +230,24 @@ void ComputeEquilibrium(int i,int j,double **ux,double** uy,double ** rho,double
 {
     double dens = rho[i][j];
     //implement the vsm force scheme here 
-    double vx = ux[i][j]+Fx[i][j]/(omega*rho[i][j]);
-    double vy = uy[i][j]+Fy[i][j]/(omega*rho[i][j]);
+    double vx,vy;
+    if(fcas==1)
+    {
+        vx = ux[i][j]+Fx[i][j]/(omega*rho[i][j]);
+        vy = uy[i][j]+Fy[i][j]/(omega*rho[i][j]);
+    }
+    //EDM force scheme
+    else if (fcas==2)
+    {
+        vx = ux[i][j]+Fx[i][j]/rho[i][j];
+        vy = uy[i][j]+Fy[i][j]/rho[i][j];
+    }
+    //Guo's force scheme
+    else if (fcas==3)
+    {       
+        vx = ux[i][j];
+        vy = uy[i][j];
+    }
     double usq = vx * vx + vy * vy;
     for(int k=0;k<9;k++)
     {
@@ -226,7 +256,7 @@ void ComputeEquilibrium(int i,int j,double **ux,double** uy,double ** rho,double
     }
 }
 void Collision(double ***f,double **ux,double** uy,double ** rho,double **Fx,double **Fy,int* cx
-,int *cy, double *w,double *feq)
+,int *cy, double *w,double *feq,double *forcing)
 {
     for(int i=0;i<mx;i++)
     {
@@ -235,7 +265,16 @@ void Collision(double ***f,double **ux,double** uy,double ** rho,double **Fx,dou
             ComputeEquilibrium(i,j,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
             for (int k=0;k<9;k++)
             {
-                f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega;
+                if(fcas==1) f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega;
+                if(fcas==2) 
+                {
+                    f[k][i][j] +=feq[k];
+                    fcas=3;
+                    ComputeEquilibrium(i,j,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
+                    f[k][i][j] = f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega -feq[k];
+                    fcas=2;
+                }
+                if(fcas==3) f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega+forcing[k];
             }
         }
     }
@@ -775,10 +814,11 @@ int main()
 {
 //main loop
 Readinitialfile(setupfile,&n,&mx,&my,&omega,&mstep,
-&cas,&bc,&eos,&R,&A,&B,&T,&lx,&ly,&c,
+&cas,&fcas,&bc,&eos,&R,&A,&B,&T,&lx,&ly,&c,
 &rho_l,&rho_g,&radius,&freq,&rho0,&g,&if_th);
 int *cx = new int[n]; 
 int *cy = new int[n];
+double* forcing= new double[n];
 double *w = new double[n]; 
 double *x = new double[mx]; 
 double *y = new double[my];
@@ -816,8 +856,8 @@ for (time=0;time<mstep+1;time=time+1)
 {
     ComputeDesnity(f,rho);
     ComputeSCForce(cx,cy,rho,w,Fx,Fy);//only novelty which contribute to equilibrium velocity and macroscopic velocity 
-    ComputeVelocity(f,ux,uy,cx,cy,rho);
-    Collision(f,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
+    ComputeVelocity(f,ux,uy,cx,cy,rho,Fx,Fy);
+    Collision(f,ux,uy,rho,Fx,Fy,cx,cy,w,feq,forcing);
     Streaming(f);
     switch (bc)
     {
@@ -865,6 +905,7 @@ for (time=0;time<mstep+1;time=time+1)
 
     delete [] cx;
     delete [] cy;
+    delete [] forcing;
     delete [] w;
     delete [] x;
     delete [] y;

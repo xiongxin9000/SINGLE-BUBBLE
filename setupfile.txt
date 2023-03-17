@@ -5,6 +5,7 @@
 400
 8
 1
+1
 2
 1.0
 1.0
@@ -30,6 +31,7 @@ my:number of nodes in x direction
 omega:omega
 mstep:number of time step 
 cas:different cases
+fcas:different force scheme
 bc: 1:periodic boundary condition 2:zou-he boundary condition
 eos: different equation of state :: eos=1 and default standard eos. eos=2 C-S equation of state. 
 R: constant in the c-s eos
