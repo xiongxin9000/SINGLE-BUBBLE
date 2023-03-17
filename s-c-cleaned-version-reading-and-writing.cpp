@@ -378,14 +378,12 @@ for (int j=1;j<my;j++)
                 double factor4 = sqrt(pow((x[i]-0.5*lx+radius), 2) + pow((y[j]-0.5*ly), 2));
                 factor4 = 2.0 * (factor4 - radius) / if_th;
                 //bubble
-                if (x[i]>lx/2) rho[i][j] = temp+factor1 * tanh(factor3);
-                else rho[i][j] = temp+factor1 * tanh(factor4);
+                rho[i][j] = temp+factor1 * tanh(factor3)*tanh(factor4);
                 //droplet
-                // if (x[i]>mx/2) rho[i][j] = temp-factor1 * tanh(factor3);
-                // else rho[i][j] = temp-factor1 * tanh(factor4);
+                //rho[i][j] = temp-factor1 * tanh(factor3)*tanh(factor4);
             break;
             }
-            case 3: //elliptic droplet or bubble with smmoth interface
+            case 3: //elliptic droplet or bubble with smooth interface
             {
                 //Force approach for the pseudopotential lattice Boltzmann method
                 double e=sqrt(1-(a/b)*(a/b));
@@ -436,6 +434,117 @@ for (int j=1;j<my;j++)
             }
             else
             rho[i][j]=rho_l;
+                break;
+            }
+            case 7: //bubble cluster mx=101
+            {
+                if(//first part
+                (x[i]-30)*(x[i]-30)+(y[j]-93)*(y[j]-93)<radius*radius||(x[i]-43)*(x[i]-43)+(y[j]-93)*(y[j]-93)<radius*radius||(x[i]-56)*(x[i]-56)+(y[j]-93)*(y[j]-93)<radius*radius||(x[i]-69)*(x[i]-69)+(y[j]-93)*(y[j]-93)<radius*radius
+                ||(x[i]-21)*(x[i]-21)+(y[j]-78)*(y[j]-78)<radius*radius||(x[i]-35.5)*(x[i]-35.5)+(y[j]-78)*(y[j]-78)<radius*radius||(x[i]-50)*(x[i]-50)+(y[j]-78)*(y[j]-78)<radius*radius||(x[i]-64.5)*(x[i]-64.5)+(y[j]-78)*(y[j]-78)<radius*radius||(x[i]-79)*(x[i]-79)+(y[j]-78)*(y[j]-78)<radius*radius
+                ||(x[i]-13)*(x[i]-13)+(y[j]-64)*(y[j]-64)<radius*radius||(x[i]-27.8)*(x[i]-27.8)+(y[j]-64)*(y[j]-64)<radius*radius||(x[i]-42.6)*(x[i]-42.6)+(y[j]-64)*(y[j]-64)<radius*radius||(x[i]-57.4)*(x[i]-57.4)+(y[j]-64)*(y[j]-64)<radius*radius||(x[i]-72.2)*(x[i]-72.2)+(y[j]-64)*(y[j]-64)<radius*radius||(x[i]-87)*(x[i]-87)+(y[j]-64)*(y[j]-64)<radius*radius
+                ||(x[i]-5)*(x[i]-5)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-20)*(x[i]-20)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-35)*(x[i]-35)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-50)*(x[i]-50)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-65)*(x[i]-65)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-80)*(x[i]-80)+(y[j]-50)*(y[j]-50)<radius*radius||(x[i]-94)*(x[i]-94)+(y[j]-50)*(y[j]-50)<radius*radius
+                //second part
+                ||(x[i]-13)*(x[i]-13)+(y[j]-35)*(y[j]-35)<radius*radius||(x[i]-27.8)*(x[i]-27.8)+(y[j]-35)*(y[j]-35)<radius*radius||(x[i]-42.6)*(x[i]-42.6)+(y[j]-35)*(y[j]-35)<radius*radius||(x[i]-57.4)*(x[i]-57.4)+(y[j]-35)*(y[j]-35)<radius*radius||(x[i]-72.2)*(x[i]-72.2)+(y[j]-35)*(y[j]-35)<radius*radius||(x[i]-87)*(x[i]-87)+(y[j]-35)*(y[j]-35)<radius*radius
+                ||(x[i]-21)*(x[i]-21)+(y[j]-21)*(y[j]-21)<radius*radius||(x[i]-35.5)*(x[i]-35.5)+(y[j]-21)*(y[j]-21)<radius*radius||(x[i]-50)*(x[i]-50)+(y[j]-21)*(y[j]-21)<radius*radius||(x[i]-64.5)*(x[i]-64.5)+(y[j]-21)*(y[j]-21)<radius*radius||(x[i]-79)*(x[i]-79)+(y[j]-21)*(y[j]-21)<radius*radius
+                ||(x[i]-30)*(x[i]-30)+(y[j]-7)*(y[j]-7)<radius*radius||(x[i]-43)*(x[i]-43)+(y[j]-7)*(y[j]-7)<radius*radius||(x[i]-56)*(x[i]-56)+(y[j]-7)*(y[j]-7)<radius*radius||(x[i]-69)*(x[i]-69)+(y[j]-7)*(y[j]-7)<radius*radius)
+            {
+                rho[i][j]=rho_g;
+            }
+            else
+            rho[i][j]=rho_l;
+                break;
+            }
+            case 8: //bubble cluster with smooth interface
+            {   
+                //first row
+                double factor5 = sqrt(pow((i-30), 2) + pow((j-93), 2));
+                factor5 = 2.0 * (factor5 - radius) / if_th;
+                double factor6 = sqrt(pow((i-43), 2) + pow((j-93), 2));
+                factor6 = 2.0 * (factor6 - radius) / if_th;
+                double factor7 = sqrt(pow((i-56), 2) + pow((j-93), 2));
+                factor7 = 2.0 * (factor7 - radius) / if_th;
+                double factor8 = sqrt(pow((i-69), 2) + pow((j-93), 2));
+                factor8 = 2.0 * (factor8 - radius) / if_th;
+                //second row
+                double factor9 = sqrt(pow((i-21), 2) + pow((j-78), 2));
+                factor9 = 2.0 * (factor9 - radius) / if_th;
+                double factor10 = sqrt(pow((i-35.5), 2) + pow((j-78), 2));
+                factor10 = 2.0 * (factor10 - radius) / if_th;
+                double factor11 = sqrt(pow((i-50), 2) + pow((j-78), 2));
+                factor11 = 2.0 * (factor11 - radius) / if_th;
+                double factor12 = sqrt(pow((i-64.5), 2) + pow((j-78), 2));
+                factor12 = 2.0 * (factor12 - radius) / if_th;
+                double factor13 = sqrt(pow((i-79), 2) + pow((j-78), 2));
+                factor13 = 2.0 * (factor13 - radius) / if_th;
+                //third row
+                double factor14 = sqrt(pow((i-13), 2) + pow((j-64), 2));
+                factor14 = 2.0 * (factor14 - radius) / if_th;
+                double factor15 = sqrt(pow((i-27.8), 2) + pow((j-64), 2));
+                factor15 = 2.0 * (factor15 - radius) / if_th;
+                double factor16 = sqrt(pow((i-42.6), 2) + pow((j-64), 2));
+                factor16 = 2.0 * (factor16 - radius) / if_th;
+                double factor17 = sqrt(pow((i-57.4), 2) + pow((j-64), 2));
+                factor17 = 2.0 * (factor17 - radius) / if_th;
+                double factor18 = sqrt(pow((i-72.2), 2) + pow((j-64), 2));
+                factor18 = 2.0 * (factor18 - radius) / if_th;
+                double factor19 = sqrt(pow((i-87), 2) + pow((j-64), 2));
+                factor19 = 2.0 * (factor19 - radius) / if_th;
+                //fourth row
+                double factor20 = sqrt(pow((i-5), 2) + pow((j-50), 2));
+                factor20 = 2.0 * (factor20 - radius) / if_th;
+                double factor21 = sqrt(pow((i-20), 2) + pow((j-50), 2));
+                factor21 = 2.0 * (factor21 - radius) / if_th;
+                double factor22 = sqrt(pow((i-35), 2) + pow((j-50), 2));
+                factor22 = 2.0 * (factor22 - radius) / if_th;
+                double factor23 = sqrt(pow((i-50), 2) + pow((j-50), 2));
+                factor23 = 2.0 * (factor23 - radius) / if_th;
+                double factor24 = sqrt(pow((i-65), 2) + pow((j-50), 2));
+                factor24 = 2.0 * (factor24 - radius) / if_th;
+                double factor25 = sqrt(pow((i-80), 2) + pow((j-50), 2));
+                factor25 = 2.0 * (factor25 - radius) / if_th;
+                double factor26 = sqrt(pow((i-94), 2) + pow((j-50), 2));
+                factor26 = 2.0 * (factor26 - radius) / if_th;
+                //second part
+                //fifth row
+                double factor27 = sqrt(pow((i-13), 2) + pow((j-35), 2));
+                factor27 = 2.0 * (factor27 - radius) / if_th;
+                double factor28 = sqrt(pow((i-27.8), 2) + pow((j-35), 2));
+                factor28 = 2.0 * (factor28 - radius) / if_th;
+                double factor29 = sqrt(pow((i-42.6), 2) + pow((j-35), 2));
+                factor29 = 2.0 * (factor29 - radius) / if_th;
+                double factor30 = sqrt(pow((i-57.4), 2) + pow((j-35), 2));
+                factor30 = 2.0 * (factor30 - radius) / if_th;
+                double factor31 = sqrt(pow((i-72.2), 2) + pow((j-35), 2));
+                factor31 = 2.0 * (factor31 - radius) / if_th;
+                double factor32 = sqrt(pow((i-87), 2) + pow((j-35), 2));
+                factor32 = 2.0 * (factor32 - radius) / if_th;
+                //sixth row
+                double factor33 = sqrt(pow((i-21), 2) + pow((j-21), 2));
+                factor33 = 2.0 * (factor33 - radius) / if_th;
+                double factor34 = sqrt(pow((i-35.5), 2) + pow((j-21), 2));
+                factor34 = 2.0 * (factor34 - radius) / if_th;
+                double factor35 = sqrt(pow((i-50), 2) + pow((j-21), 2));
+                factor35 = 2.0 * (factor35 - radius) / if_th;
+                double factor36 = sqrt(pow((i-64.5), 2) + pow((j-21), 2));
+                factor36 = 2.0 * (factor36 - radius) / if_th;
+                double factor37 = sqrt(pow((i-79), 2) + pow((j-21), 2));
+                factor37 = 2.0 * (factor37 - radius) / if_th;
+                //seventh row
+                double factor38 = sqrt(pow((i-30), 2) + pow((j-7), 2));
+                factor38 = 2.0 * (factor38 - radius) / if_th;
+                double factor39 = sqrt(pow((i-43), 2) + pow((j-7), 2));
+                factor39 = 2.0 * (factor39 - radius) / if_th;
+                double factor40 = sqrt(pow((i-56), 2) + pow((j-7), 2));
+                factor40 = 2.0 * (factor40 - radius) / if_th;
+                double factor41 = sqrt(pow((i-69), 2) + pow((j-7), 2));
+                factor41 = 2.0 * (factor41 - radius) / if_th;
+                rho[i][j] = temp+factor1 * tanh(factor5)*tanh(factor6)*tanh(factor7)*tanh(factor8)*
+                tanh(factor9)*tanh(factor10)*tanh(factor11)*tanh(factor12)*tanh(factor13)
+                *tanh(factor14)*tanh(factor15)*tanh(factor16)*tanh(factor17)*tanh(factor18)*tanh(factor19)
+                *tanh(factor20)*tanh(factor21)*tanh(factor22)*tanh(factor23)*tanh(factor24)*tanh(factor25)*tanh(factor26)
+                *tanh(factor27)*tanh(factor28)*tanh(factor29)*tanh(factor30)*tanh(factor31)*tanh(factor32)
+                *tanh(factor33)*tanh(factor34)*tanh(factor35)*tanh(factor36)*tanh(factor37)
+                *tanh(factor38)*tanh(factor39)*tanh(factor40)*tanh(factor41);
                 break;
             }
             }
