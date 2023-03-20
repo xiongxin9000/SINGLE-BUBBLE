@@ -9,6 +9,7 @@ int cas;//different cases
 int bc;//1:periodic boundary condition 2:zou-he boundary condition
 int fcas;//different force scheme: 1.vsm 2. EDM 3. Guo's force scheme.
 int eos;//different equation of state :: eos=1 and default standard eos. eos=2 C-S equation of state. 
+int dbcas;
 double R;//constant in the c-s eos
 double A;//constant in the c-s eos
 double B;//constant in the c-s eos
@@ -39,7 +40,7 @@ std::string to_string_with_precision(const double a_value, const int n = 2)
     return out.str();
 }
 void Readinitialfile(char* filename,int *n,int *mx,int *my,double *omega,int *mstep
-,int* cas,int* fcas,int *bc,int* eos,double* R,double* A,double* B,double* T,double *lx,double* ly,int*c,
+,int* cas,int* fcas,int *bc,int* eos,int* dbcas,double* R,double* A,double* B,double* T,double *lx,double* ly,int*c,
 double* rho_l,double* rho_g,double* radius,int* freq,double* rho0,double* g,double* if_th)
 { 
     FILE *file=NULL;
@@ -57,6 +58,7 @@ double* rho_l,double* rho_g,double* radius,int* freq,double* rho0,double* g,doub
     fscanf(file,"%d",fcas);
     fscanf(file,"%d",bc);
     fscanf(file,"%d",eos);
+    fscanf(file,"%d",dbcas);
     fscanf(file,"%lf",R);
     fscanf(file,"%lf",A);
     fscanf(file,"%lf",B);
@@ -197,7 +199,7 @@ void ComputeSCForce(int *cx,int *cy,double **rho,double *w,double **Fx,double **
 void ComputeGuoForce(int i,int j,int k,int *cx,int *cy,double **ux,double ** uy,double** Fx,double** Fy,double*w,double* forcing)
 {
         double temp=cx[k] * ux[i][j] + cy[k] * uy[i][j];
-        forcing[k] = w[k] * (1. - 0.5 * omega) * 
+        forcing[k] = w[k] * (1. - 0.5 * omega) * dt*
         ((3. * (cx[k] - ux[i][j]) + 9. * cx[k] * temp) * Fx[i][j] + 
         (3. * (cy[k] - uy[i][j]) + 9. * cy[k] * temp) * Fy[i][j]);
 }
@@ -215,8 +217,8 @@ void ComputeVelocity(double ***f,double** ux,double **uy,int* cx,int* cy,double 
                 uy[i][j] += f[k][i][j]*cy[k];
                 if(fcas==3)
                 {
-                    ux[i][j] += (0.5 * Fx[i][j]);
-                    uy[i][j] += (0.5 * Fy[i][j]);
+                    ux[i][j] += (0.5 * Fx[i][j]*dt);
+                    uy[i][j] += (0.5 * Fy[i][j]*dt);
                 }
             }
             double dens = ComputeTotalDensity(i,j,rho);
@@ -233,14 +235,14 @@ void ComputeEquilibrium(int i,int j,double **ux,double** uy,double ** rho,double
     double vx,vy;
     if(fcas==1)
     {
-        vx = ux[i][j]+Fx[i][j]/(omega*rho[i][j]);
-        vy = uy[i][j]+Fy[i][j]/(omega*rho[i][j]);
+        vx = ux[i][j]+Fx[i][j]*dt/(omega*rho[i][j]);
+        vy = uy[i][j]+Fy[i][j]*dt/(omega*rho[i][j]);
     }
     //EDM force scheme
     else if (fcas==2)
     {
-        vx = ux[i][j]+Fx[i][j]/rho[i][j];
-        vy = uy[i][j]+Fy[i][j]/rho[i][j];
+        vx = ux[i][j]+Fx[i][j]*dt/rho[i][j];
+        vy = uy[i][j]+Fy[i][j]*dt/rho[i][j];
     }
     //Guo's force scheme
     else if (fcas==3)
@@ -266,15 +268,20 @@ void Collision(double ***f,double **ux,double** uy,double ** rho,double **Fx,dou
             for (int k=0;k<9;k++)
             {
                 if(fcas==1) f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega;
-                if(fcas==2) 
+                else if(fcas==2) 
                 {
-                    f[k][i][j] +=feq[k];
                     fcas=3;
                     ComputeEquilibrium(i,j,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
-                    f[k][i][j] = f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega -feq[k];
+                    f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega -feq[k];
                     fcas=2;
+                    ComputeEquilibrium(i,j,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
+                    f[k][i][j] +=feq[k];
                 }
-                if(fcas==3) f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega+forcing[k];
+                else if(fcas==3) 
+                {
+                    ComputeGuoForce(i,j,k,cx,cy,ux,uy,Fx,Fy,w,forcing);
+                    f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega+forcing[k];
+                }
             }
         }
     }
@@ -336,6 +343,15 @@ std::cout<<"dx "<<dx<<std::endl;
 std::cout<<"dy "<<dy<<std::endl;
 std::cout<<"dt "<<dt<<std::endl;
 std::cout<<"mstep "<<mstep<<std::endl;
+std::cout<<"density of liquid "<<rho_l<<std::endl;
+std::cout<<"density of gas "<<rho_g<<std::endl;
+std::cout<<"save frequency "<<freq<<std::endl;
+std::cout<<"cas "<<cas<<std::endl;
+if(fcas==1) std::cout<<"forcing scheme "<<"VSM"<<std::endl;
+else if(fcas==2) std::cout<<"forcing scheme "<<"EDM"<<std::endl;
+else if(fcas==3) std::cout<<"forcing scheme "<<"Guo's"<<std::endl;
+if (bc==1)std::cout<<"boundary condition "<<"periodic"<<std::endl;
+else if(bc==2) std::cout<<"boundary condition "<<"Z-H"<<std::endl;
 std::string filename = std::string("animation0") +std::string(".dat");
 /*---------streaming vector--------*/
 cx[0]=0,cx[1]=1,cx[2]=0,cx[3]=-1,cx[4]=0,cx[5]=1,cx[6]=-1,cx[7]=-1,cx[8]=1;
@@ -402,11 +418,9 @@ for (int j=1;j<my;j++)
             {
             case 1://single bubble or droplet with smooth interface
             {
-                //smooth the interface 
-                //droplet
-                //rho[i][j] = temp-factor1 * tanh(factor2);
-                //bubble 
-                rho[i][j] = temp+factor1 * tanh(factor2);
+                //smooth the interface
+                if(dbcas==1) rho[i][j] = temp+factor1 * tanh(factor2);//bubble
+                else if(dbcas==2)  rho[i][j] = temp-factor1 * tanh(factor2);//droplet
                 break;
             }
             case 2: //two droplets or bubbles merge with smmoth interface 
@@ -416,10 +430,8 @@ for (int j=1;j<my;j++)
                 factor3 = 2.0 * (factor3 - radius) / if_th;
                 double factor4 = sqrt(pow((x[i]-0.5*lx+radius), 2) + pow((y[j]-0.5*ly), 2));
                 factor4 = 2.0 * (factor4 - radius) / if_th;
-                //bubble
-                rho[i][j] = temp+factor1 * tanh(factor3)*tanh(factor4);
-                //droplet
-                //rho[i][j] = temp-factor1 * tanh(factor3)*tanh(factor4);
+                if(dbcas==1) rho[i][j] = temp+factor1 * tanh(factor3)*tanh(factor4); //bubble
+                else if(dbcas==2) rho[i][j] = temp-factor1 * tanh(factor3)*tanh(factor4);//droplet
             break;
             }
             case 3: //elliptic droplet or bubble with smooth interface
@@ -438,10 +450,8 @@ for (int j=1;j<my;j++)
                 else if(x[i]==0.5*lx) R0=a/sqrt(1-pow(0,2));
                 factor2=sqrt(pow((x[i]-0.5*lx), 2) + pow((y[j]-0.5*ly), 2));
                 factor2 = 2*(factor2 - R0) / if_th;
-                //droplet
-                // rho[i][j] = temp-factor1 * tanh(factor2);
-                //bubble
-                rho[i][j] = temp+factor1 * tanh(factor2);
+                if(dbcas==1) rho[i][j] = temp+factor1 * tanh(factor2); //bubble
+                else if(dbcas==2) rho[i][j] = temp-factor1 * tanh(factor2);//droplet
                 break;
             }
             case 4://single bubble or droplet without smooth interface
@@ -459,20 +469,28 @@ for (int j=1;j<my;j++)
                 if((x[i]-lx/2+radius-1)*(x[i]-lx/2+radius-1)+(y[j]-ly/2)*(y[j]-ly/2)<radius*radius
             ||(x[i]-lx/2-radius+1)*(x[i]-lx/2-radius+1)+(y[j]-ly/2)*(y[j]-ly/2)<radius*radius)
             {
-                rho[i][j]=rho_g;
+                if(dbcas==1) rho[i][j]=rho_g;
+                else if(dbcas==2) rho[i][j]=rho_l;
             }
             else
-            rho[i][j]=rho_l;
+            {
+                if(dbcas==1) rho[i][j]=rho_l;
+                else if(dbcas==2) rho[i][j]=rho_g;
+            }
                 break;
             }
             case 6: //elliptical bubble or droplet without smooth interface
             {
                 if((x[i]-lx/2)*(x[i]-ly/2)/(a*a)+(y[j]-lx/2)*(y[j]-ly/2)/(b*b)<1)
             {
-                rho[i][j]=rho_g;
+                if(dbcas==1) rho[i][j]=rho_g;
+                else if(dbcas==2) rho[i][j]=rho_l;
             }
             else
-            rho[i][j]=rho_l;
+            {
+                if(dbcas==1) rho[i][j]=rho_l;
+                else if(dbcas==2) rho[i][j]=rho_g;
+            }
                 break;
             }
             case 7: //bubble cluster mx=101
@@ -490,7 +508,7 @@ for (int j=1;j<my;j++)
                 rho[i][j]=rho_g;
             }
             else
-            rho[i][j]=rho_l;
+                rho[i][j]=rho_l;
                 break;
             }
             case 8: //bubble cluster with smooth interface
@@ -771,7 +789,11 @@ const int y = my / 2;
 
     //write data for radius,pressure and surface tension 
     std::ofstream out;
-    std::string outputfile="pressure_"+to_string_with_precision(lx)+"_"+std::to_string(mx)+"_"+to_string_with_precision(rho_l)+".dat";
+    std::string fcas_str="";
+    if(fcas==1) fcas_str="VSM";
+    else if(fcas==2) fcas_str="EDM";
+    else if(fcas==3) fcas_str="Guo";
+    std::string outputfile="pressure_"+to_string_with_precision(lx)+"_"+std::to_string(mx)+"_"+to_string_with_precision(rho_l)+"_"+fcas_str+".dat";
     out.open(outputfile,std::ios::app);
         out << std::scientific << std::setprecision(5) << std::setw(15) << delta_press;
         out << std::scientific << std::setprecision(5) << std::setw(15) << 1./rad;
@@ -814,7 +836,7 @@ int main()
 {
 //main loop
 Readinitialfile(setupfile,&n,&mx,&my,&omega,&mstep,
-&cas,&fcas,&bc,&eos,&R,&A,&B,&T,&lx,&ly,&c,
+&cas,&fcas,&bc,&eos,&dbcas,&R,&A,&B,&T,&lx,&ly,&c,
 &rho_l,&rho_g,&radius,&freq,&rho0,&g,&if_th);
 int *cx = new int[n]; 
 int *cy = new int[n];
