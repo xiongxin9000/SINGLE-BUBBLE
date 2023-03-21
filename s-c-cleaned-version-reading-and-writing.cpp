@@ -215,11 +215,11 @@ void ComputeVelocity(double ***f,double** ux,double **uy,int* cx,int* cy,double 
             {
                 ux[i][j] += f[k][i][j]*cx[k];
                 uy[i][j] += f[k][i][j]*cy[k];
-                if(fcas==3)
-                {
-                    ux[i][j] += (0.5 * Fx[i][j]*dt);
-                    uy[i][j] += (0.5 * Fy[i][j]*dt);
-                }
+            }
+            if(fcas==3)
+            {
+                ux[i][j] += (0.5 * Fx[i][j]*dt);
+                uy[i][j] += (0.5 * Fy[i][j]*dt);
             }
             double dens = ComputeTotalDensity(i,j,rho);
             ux[i][j] /= dens;
@@ -232,7 +232,7 @@ void ComputeEquilibrium(int i,int j,double **ux,double** uy,double ** rho,double
 {
     double dens = rho[i][j];
     //implement the vsm force scheme here 
-    double vx,vy;
+    double vx=0,vy=0;
     if(fcas==1)
     {
         vx = ux[i][j]+Fx[i][j]*dt/(omega*rho[i][j]);
@@ -247,6 +247,11 @@ void ComputeEquilibrium(int i,int j,double **ux,double** uy,double ** rho,double
     //Guo's force scheme
     else if (fcas==3)
     {       
+        vx = ux[i][j];
+        vy = uy[i][j];
+    }
+    else
+    {
         vx = ux[i][j];
         vy = uy[i][j];
     }
@@ -270,7 +275,7 @@ void Collision(double ***f,double **ux,double** uy,double ** rho,double **Fx,dou
                 if(fcas==1) f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega;
                 else if(fcas==2) 
                 {
-                    fcas=3;
+                    fcas=4;
                     ComputeEquilibrium(i,j,ux,uy,rho,Fx,Fy,cx,cy,w,feq);
                     f[k][i][j] = f[k][i][j] * (1. - omega) + feq[k] * omega -feq[k];
                     fcas=2;
@@ -342,11 +347,20 @@ mstep=mstep/dt;
 std::cout<<"dx "<<dx<<std::endl;
 std::cout<<"dy "<<dy<<std::endl;
 std::cout<<"dt "<<dt<<std::endl;
+std::cout<<"mx "<<mx<<std::endl;
+std::cout<<"my "<<my<<std::endl;
+std::cout<<"lx "<<lx<<std::endl;
+std::cout<<"ly "<<ly<<std::endl;
 std::cout<<"mstep "<<mstep<<std::endl;
 std::cout<<"density of liquid "<<rho_l<<std::endl;
 std::cout<<"density of gas "<<rho_g<<std::endl;
 std::cout<<"save frequency "<<freq<<std::endl;
 std::cout<<"cas "<<cas<<std::endl;
+std::cout<<"eos "<<eos<<std::endl;
+std::cout<<"interaction strength "<<g<<std::endl;
+std::cout<<"interface thickness "<<if_th<<std::endl;
+std::cout<<"radius "<<radius<<std::endl;
+std::cout<<"bubble or droplet:1 bubble 2:droplet "<<dbcas<<std::endl;
 if(fcas==1) std::cout<<"forcing scheme "<<"VSM"<<std::endl;
 else if(fcas==2) std::cout<<"forcing scheme "<<"EDM"<<std::endl;
 else if(fcas==3) std::cout<<"forcing scheme "<<"Guo's"<<std::endl;
@@ -380,28 +394,7 @@ for (int j=1;j<my;j++)
     y[j]=dy*j;
 }
 /*initial condition--------------*/
-// std::cout<<"n "<<n<<std::endl;
-// std::cout<<"mx "<<mx<<std::endl;
-// std::cout<<"my "<<my<<std::endl;
-// std::cout<<"omega= "<<omega<<std::endl;
-// std::cout<<"mstep= "<<mstep<<std::endl;
-// std::cout<<"cas= "<<cas<<std::endl;
-// std::cout<<"bc= "<<bc<<std::endl;
-// std::cout<<"eos= "<<eos<<std::endl;
-// std::cout<<"R= "<<R<<std::endl;
-// std::cout<<"A= "<<A<<std::endl;
-// std::cout<<"B= "<<B<<std::endl;
-// std::cout<<"T= "<<T<<std::endl;
-// std::cout<<"lx= "<<lx<<std::endl;
-// std::cout<<"ly= "<<ly<<std::endl;
-// std::cout<<"c= "<<c<<std::endl;
-// std::cout<<"rho_l= "<<rho_l<<std::endl;
-// std::cout<<"rho_g= "<<rho_g<<std::endl;
-// std::cout<<"radius "<<radius<<std::endl;
-// std::cout<<"freq "<<freq<<std::endl;
-// std::cout<<"rho0 "<<rho0<<std::endl;
-// std::cout<<"g "<<g<<std::endl;
-// std::cout<<"if_th "<<if_th<<std::endl;
+
 /*initial condition--------------*/
     for(int i=0;i<mx;i++)
     {
@@ -874,7 +867,7 @@ initialize(cx,cy,w,x,y,rho,ux,uy,f,feq,Fx,Fy,if_th);
 int time=0;
 std::string filename = std::string("animation") +std::to_string(time)+std::string(".dat");
 result(filename,time,x,y,ux,uy,rho,press,f,feq);
-for (time=0;time<mstep+1;time=time+1)
+for (time=1;time<mstep+1;++time)
 {
     ComputeDesnity(f,rho);
     ComputeSCForce(cx,cy,rho,w,Fx,Fy);//only novelty which contribute to equilibrium velocity and macroscopic velocity 

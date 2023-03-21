@@ -2,10 +2,10 @@
 101
 101
 1.0
-10
+400
 1
-3
-1
+2
+2
 2
 1
 1.0
@@ -15,12 +15,12 @@
 100.0
 100.0
 1
-2.1
-0.15
+0.31
+0.011
 25
-1
+100
 1.0
--4.7
+-1
 5.0
 
 
@@ -35,7 +35,7 @@ cas:different cases
 fcas:different force scheme
 bc: 1:periodic boundary condition 2:zou-he boundary condition
 eos: different equation of state :: eos=1: default standard eos. eos=2 C-S equation of state. 
-bdcas: droplet or bubble :: 1: bubble 2:droplet
+dbcas: droplet or bubble :: 1: bubble 2:droplet
 R: constant in the c-s eos
 A: constant in the c-s eos
 B: constant in the c-s eos
